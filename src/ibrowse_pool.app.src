@@ -1,0 +1,16 @@
+%%% vim: set nowrap textwidth=500 filetype=erlang tabstop=2 softtabstop=2 shiftwidth=2:
+{application, ibrowse_pool,
+  [ {description , "Front-end for running multiple ibrowse instances."}
+  , {vsn         , "0.0.0"}
+  , {registered  , []}
+  , {applications,
+      [ kernel
+      , stdlib
+      , ssl
+      , ibrowse
+      ]}
+  , {mod, {ibrowse_pool_app, []}}
+  , {env,
+      [
+      ]}
+  ]}.
