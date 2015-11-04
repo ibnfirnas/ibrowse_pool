@@ -4,10 +4,12 @@
 
 -export_type(
     [ t/0
+    , property/0
+    , properties/0
     ]).
 
 -export(
-    [ of_pairs/1
+    [ of_props/1
     ]).
 
 -define(T, #?MODULE).
@@ -15,10 +17,24 @@
 -type t() ::
     ?T{}.
 
--spec of_pairs([{atom(), term()}]) ->
+-type property() ::
+      {name              , atom()}
+    | {host              , string()}
+    | {port              , inet:port_number()}
+    | {ssl               , hope_option:t([term()])}
+    | {max_sessions      , pos_integer()}
+    | {max_pipeline_size , pos_integer()}
+    | {max_attempts      , pos_integer()}
+    | {timeout           , timeout()}
+    .
+
+-type properties() ::
+    [property()].
+
+-spec of_props(properties()) ->
     t().
-of_pairs(Pairs) ->
-    GetOpt = fun (K)    -> hope_kv_list:get(Pairs, K) end,
+of_props(Properties) ->
+    GetOpt = fun (K)    -> hope_kv_list:get(Properties, K) end,
     GetDef = fun (K, D) -> hope_option:get(GetOpt(K), D) end,
     Get    = fun (K)    -> {some, V} = GetOpt(K), V end,
     ?T
