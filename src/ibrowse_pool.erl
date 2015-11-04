@@ -15,7 +15,7 @@
 -export(
     [ start_link/1
     , start_supervised/1
-    , send_req/6
+    , send_req/5
     ]).
 
 %% gen_server callbacks
@@ -51,7 +51,6 @@
     , headers           :: [{string(), string()}]
     , method            :: atom()
     , body              :: string()
-    , timeout           :: timeout()
     , max_sessions      :: pos_integer()
     , max_pipeline_size :: pos_integer()
     , max_attempts      :: pos_integer()
@@ -90,13 +89,12 @@ start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
     string(),
     [{string(), string()}],
     atom(),
-    string(),
-    timeout()
+    string()
 ) ->
       {ok, term()}
     | {error, term()}
     .
-send_req(Name, UrlRaw, Headers, Method, Body, Timeout) ->
+send_req(Name, UrlRaw, Headers, Method, Body) ->
     case catch ibrowse_lib:parse_url(UrlRaw)
     of  #url{}=UrlParsed ->
             ReqParams =
@@ -105,7 +103,6 @@ send_req(Name, UrlRaw, Headers, Method, Body, Timeout) ->
                 , headers = Headers
                 , method  = Method
                 , body    = Body
-                , timeout = Timeout
                 },
             gen_server:call(Name, {send_req, ReqParams})
     ;   Error ->
@@ -170,13 +167,13 @@ ibrowse_send_req(#state{spec=Spec}=State0, ReqParams) ->
     , max_sessions      = Max_sessions
     , max_pipeline_size = Max_pipeline_size
     , max_attempts      = Max_attempts
+    , timeout           = Timeout
     } = Spec,
     #req_params
     { url     = Url
     , headers = Headers
     , method  = Method
     , body    = Body
-    , timeout = Timeout
     } = ReqParams,
     {IsSSL, SSLOptions} =
         case SSLOpt

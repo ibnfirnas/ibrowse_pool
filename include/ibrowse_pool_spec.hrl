@@ -6,4 +6,5 @@
     , max_sessions      = 10 :: pos_integer()
     , max_pipeline_size = 10 :: pos_integer()
     , max_attempts      = 3  :: pos_integer()
+    , timeout           = 5000 :: timeout()
     }).
