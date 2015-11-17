@@ -19,9 +19,7 @@
 
 -type property() ::
       {name              , atom()}
-    | {host              , string()}
-    | {port              , inet:port_number()}
-    | {ssl               , hope_option:t([term()])}
+    | {ssl_opts          , [term()]}
     | {max_sessions      , pos_integer()}
     | {max_pipeline_size , pos_integer()}
     | {max_attempts      , pos_integer()}
@@ -39,11 +37,8 @@ of_props(Properties) ->
     ?T
     % Required params
     { name              = Get(name)
-    , host              = Get(host)
-    , port              = Get(port)
-
     % Optional params
-    , ssl               = GetDef(ssl              , none)
+    , ssl_opts          = GetDef(ssl_opts         , [])
     , max_sessions      = GetDef(max_sessions     , 10)
     , max_pipeline_size = GetDef(max_pipeline_size, 10)
     , max_attempts      = GetDef(max_attempts     , 3)

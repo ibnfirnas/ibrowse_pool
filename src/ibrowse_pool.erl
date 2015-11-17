@@ -9,6 +9,7 @@
 -export_type(
     [ option/0
     , options/0
+    , host_port/0
     ]).
 
 %% API
@@ -34,13 +35,16 @@
 -type options() ::
     [option()].
 
+-type host_port() ::
+    {string(), inet:port_number()}.
+
 %% ============================================================================
 %% Internal data
 %% ============================================================================
 
 -record(state,
     { spec :: ibrowse_pool_spec:t()
-    , lb   :: none | {some, pid()}
+    , load_balancers :: dict:dict(host_port(), pid())
     }).
 
 -type state() ::
@@ -131,14 +135,20 @@ init(#ibrowse_pool_spec{}=PoolSpec) ->
     State0 =
         #state
         { spec = PoolSpec
-        , lb   = none
+        , load_balancers = dict:new()
         },
     {ok, State0}.
 
-terminate(_Reason, #state{lb=none}) ->
-    ok;
-terminate(_Reason, #state{lb={some, Pid}}) ->
-    ok = ibrowse_lb:stop(Pid).
+terminate(_Reason, #state{load_balancers=LBs}) ->
+    {} = dict:fold(
+        fun (_, Pid, {}) ->
+                _ = ibrowse_lb:stop(Pid),
+                {}
+        end,
+        {},
+        LBs
+    ),
+    ok.
 
 handle_call({send_req, #req_params{}=ReqParams}, _, #state{}=State0) ->
     {State1, Result} = ibrowse_send_req(State0, ReqParams),
@@ -154,40 +164,36 @@ handle_info(_, #state{}=State) ->
 %%  Internal
 %% ============================================================================
 
--spec state_ensure_lb(state()) ->
-    state().
-state_ensure_lb(#state{lb={some, Pid}}=State0) when is_pid(Pid) ->
-    State0;
-state_ensure_lb(#state{lb=none, spec=#ibrowse_pool_spec{}=Spec}=State0) ->
-    #ibrowse_pool_spec
-    { host = Host
-    , port = Port
-    } = Spec,
-    {ok, Pid} = ibrowse_lb:start_link([Host, Port]),
-    State0#state{lb = {some, Pid}}.
+-spec state_get_lb_pid(state(), string(), inet:port_number()) ->
+    {state(), pid()}.
+state_get_lb_pid(#state{load_balancers=LBs0}=State0, Host, Port) ->
+    HostPort = {Host, Port},
+    case dict:find(HostPort, LBs0)
+    of  {ok, LB} ->
+            {State0, LB}
+    ;   error ->
+            {ok, LB} = ibrowse_lb:start_link([Host, Port]),
+            LBs1 = dict:store(HostPort, LB, LBs0),
+            State1 = State0#state{load_balancers = LBs1},
+            {State1, LB}
+    end.
 
 ibrowse_send_req(#state{spec=Spec}=State0, ReqParams) ->
     #ibrowse_pool_spec
-    { host              = _
-    , port              = _
-    , ssl               = SSLOpt
+    { ssl_opts          = SSLOptions
     , max_sessions      = Max_sessions
     , max_pipeline_size = Max_pipeline_size
     , max_attempts      = Max_attempts
     } = Spec,
     #req_params
-    { url     = Url
+    { url     = #url{host=Host, port=Port, protocol=Protocol}=Url
     , headers = Headers
     , method  = Method
     , body    = Body
     , timeout = Timeout
     } = ReqParams,
-    {IsSSL, SSLOptions} =
-        case SSLOpt
-        of  none -> {false, []}
-        ;   {some, SSLOptions0} -> {true, SSLOptions0}
-        end,
-    #state{lb={some, LbPid}}=State1 = state_ensure_lb(State0),
+    IsSSL = Protocol =:= https,
+    {State1, LbPid} = state_get_lb_pid(State0, Host, Port),
     Timestamp = os:timestamp(),
     Options = [],
     Result = ibrowse_pool_copypasta:try_routing_request(
