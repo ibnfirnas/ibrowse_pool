@@ -35,7 +35,7 @@ start_child(#ibrowse_pool_spec{}=PoolSpec) ->
 -spec init([{atom(), term()}]) ->
     {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}} | ignore.
 init(PoolSpecsAsPairs) ->
-    PoolSpecs = [ibrowse_pool_spec:of_pairs(P) || P <- PoolSpecsAsPairs],
+    PoolSpecs = [ibrowse_pool_spec:of_props(P) || P <- PoolSpecsAsPairs],
     Children  = [child_spec_of_pool_spec(P)    || P <- PoolSpecs],
     {ok, {{one_for_one, 5, 10}, Children}}.
 
