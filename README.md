@@ -21,22 +21,12 @@ Eshell V7.1  (abort with ^G)
 1>
 1> application:ensure_all_started(ibrowse_pool).
 {ok,[crypto,asn1,public_key,ssl,ibrowse,ibrowse_pool]}
+1>
 2>
-2> PoolSpecA = ibrowse_pool_spec:of_pairs(
-2>   [ {name, pool_a}
-2>   , {host, "httpbin.org"}
-2>   , {port, 443}
-2>   , {ssl, {some, []}}
-2>   ]
-2> ).
-{ibrowse_pool_spec,pool_a,"httpbin.org",443,
-                   {some,[]},
-                   10,10,3}
-3>
-3> ibrowse_pool:start_supervised(PoolSpecA).
+2> ibrowse_pool:start_supervised(ibrowse_pool_spec:of_pairs([{name, pool_a}])).
 {ok,<0.57.0>}
-4>
-4> ibrowse_pool:send_req(pool_a, "https://httpbin.org/ip", [], get, "", 5000).
+3>
+3> ibrowse_pool:send_req(pool_a, "https://httpbin.org/ip", [], get, "", 5000).
 {ok,"200",
     [{"Server","nginx"},
      {"Date","Tue, 03 Nov 2015 19:43:24 GMT"},
