@@ -4,12 +4,14 @@ REBAR := ./rebar
 	all \
 	clean \
 	compile \
-	deps
+	deps \
+	dialyze
 
 all: \
 	clean \
 	deps \
-	compile
+	compile \
+	dialyze
 
 deps:
 	@$(REBAR) get-deps
@@ -19,3 +21,6 @@ clean:
 
 compile:
 	@$(REBAR) compile
+
+dialyze:
+	@dialyzer ebin deps/*/ebin
