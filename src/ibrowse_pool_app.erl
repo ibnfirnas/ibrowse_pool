@@ -11,6 +11,7 @@
 
 start(_StartType, _StartArgs) ->
     Pools = application:get_env(ibrowse_pool, pools, []),
+    {} = ibrowse_pool_config_stash:start(),
     ibrowse_pool_sup:start_link(Pools).
 
 stop(_State) ->
