@@ -16,7 +16,7 @@
 -export(
     [ start_link/1
     , start_supervised/1
-    , send_req/6
+    , send_req/5
     ]).
 
 %% gen_server callbacks
@@ -77,7 +77,8 @@ start_supervised(#ibrowse_pool_spec{}=PoolSpec) ->
     | ignore
     | {error, {already_started, pid()} | term()}
     .
-start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
+start_link(#ibrowse_pool_spec{name=Name, timeout=Timeout}=PoolSpec) ->
+    {} = ibrowse_pool_config_stash:set_timeout(Name, Timeout),
     RegisteredName  = Name,
     GenServerModule = ?MODULE,
     GenServerOpts   = [],
@@ -94,13 +95,13 @@ start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
     string(),
     [{string(), string()}],
     atom(),
-    string(),
-    non_neg_integer()
+    string()
 ) ->
       {ok, term()}
     | {error, term()}
     .
-send_req(Name, UrlRaw, Headers, Method, Body, Timeout) ->
+send_req(Name, UrlRaw, Headers, Method, Body) ->
+    Timeout = ibrowse_pool_config_stash:get_timeout(Name),
     case catch ibrowse_lib:parse_url(UrlRaw)
     of  #url{}=UrlParsed ->
             ReqParams =
