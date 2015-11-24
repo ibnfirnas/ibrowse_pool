@@ -133,6 +133,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ============================================================================
 
 init(#ibrowse_pool_spec{}=PoolSpec) ->
+    erlang:process_flag(trap_exit, true),
     State0 =
         #state
         { spec = PoolSpec
@@ -158,6 +159,10 @@ handle_call({send_req, #req_params{}=ReqParams}, _, #state{}=State0) ->
 handle_cast(_, #state{}=State) ->
     {noreply, State}.
 
+handle_info({'EXIT', Pid, _}=Exit, #state{}=State0) ->
+    error_logger:warning_msg("ibrowse_pool trapped exit: ~p~n", [Exit]),
+    State1 = state_del_lb_pid(State0, Pid),
+    {noreply, State1};
 handle_info(_, #state{}=State) ->
     {noreply, State}.
 
@@ -178,6 +183,13 @@ state_get_lb_pid(#state{load_balancers=LBs0}=State0, Host, Port) ->
             State1 = State0#state{load_balancers = LBs1},
             {State1, LB}
     end.
+
+-spec state_del_lb_pid(state(), pid()) ->
+    state().
+state_del_lb_pid(#state{load_balancers=LBs0}=State0, PidGiven) ->
+    IsNotGivenPid = fun ({_, _}, Pid) -> Pid =/= PidGiven end,
+    LBs1 = dict:filter(IsNotGivenPid, LBs0),
+    State0#state{load_balancers = LBs1}.
 
 ibrowse_send_req(#state{spec=Spec}=State0, ReqParams) ->
     #ibrowse_pool_spec
