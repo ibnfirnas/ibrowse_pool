@@ -55,7 +55,7 @@
     , headers           :: [{string(), string()}]
     , method            :: atom()
     , body              :: string()
-    , timeout           :: non_neg_integer()
+    , timeout           :: timeout()
     , max_sessions      :: pos_integer()
     , max_pipeline_size :: pos_integer()
     , max_attempts      :: pos_integer()
@@ -77,8 +77,7 @@ start_supervised(#ibrowse_pool_spec{}=PoolSpec) ->
     | ignore
     | {error, {already_started, pid()} | term()}
     .
-start_link(#ibrowse_pool_spec{name=Name, timeout=Timeout}=PoolSpec) ->
-    {} = ibrowse_pool_config_stash:set_timeout(Name, Timeout),
+start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
     RegisteredName  = Name,
     GenServerModule = ?MODULE,
     GenServerOpts   = [],
@@ -101,7 +100,7 @@ start_link(#ibrowse_pool_spec{name=Name, timeout=Timeout}=PoolSpec) ->
     | {error, term()}
     .
 send_req(Name, UrlRaw, Headers, Method, Body) ->
-    Timeout = ibrowse_pool_config_stash:get_timeout(Name),
+    {ok, Timeout} = application:get_env(ibrowse_pool, timeout),
     case catch ibrowse_lib:parse_url(UrlRaw)
     of  #url{}=UrlParsed ->
             ReqParams =
