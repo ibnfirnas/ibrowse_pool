@@ -16,7 +16,7 @@
 -export(
     [ start_link/1
     , start_supervised/1
-    , send_req/5
+    , send_req/7
     ]).
 
 %% gen_server callbacks
@@ -55,6 +55,7 @@
     , headers           :: [{string(), string()}]
     , method            :: atom()
     , body              :: string()
+    , options           :: options()
     , timeout           :: timeout()
     , max_sessions      :: pos_integer()
     , max_pipeline_size :: pos_integer()
@@ -94,13 +95,14 @@ start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
     string(),
     [{string(), string()}],
     atom(),
-    string()
+    string(),
+    options(),
+    timeout()
 ) ->
       {ok, term()}
     | {error, term()}
     .
-send_req(Name, UrlRaw, Headers, Method, Body) ->
-    {ok, Timeout} = application:get_env(ibrowse_pool, timeout),
+send_req(Name, UrlRaw, Headers, Method, Body, Options, Timeout) ->
     case catch ibrowse_lib:parse_url(UrlRaw)
     of  #url{}=UrlParsed ->
             ReqParams =
@@ -109,6 +111,7 @@ send_req(Name, UrlRaw, Headers, Method, Body) ->
                 , headers = Headers
                 , method  = Method
                 , body    = Body
+                , options = Options
                 , timeout = Timeout
                 },
             try
@@ -202,12 +205,12 @@ ibrowse_send_req(#state{spec=Spec}=State0, ReqParams) ->
     , headers = Headers
     , method  = Method
     , body    = Body
+    , options = Options
     , timeout = Timeout
     } = ReqParams,
     IsSSL = Protocol =:= https,
     {State1, LbPid} = state_get_lb_pid(State0, Host, Port),
     Timestamp = os:timestamp(),
-    Options = [],
     Result = ibrowse_pool_copypasta:try_routing_request(
         LbPid,
         Url,

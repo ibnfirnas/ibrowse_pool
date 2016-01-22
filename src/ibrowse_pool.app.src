@@ -11,6 +11,6 @@
       ]}
   , {mod, {ibrowse_pool_app, []}}
   , {env,
-      [ {timeout, 10000}
+      [
       ]}
   ]}.
