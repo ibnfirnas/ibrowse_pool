@@ -43,5 +43,4 @@ of_props(Properties) ->
     , max_sessions      = GetDef(max_sessions     , 10)
     , max_pipeline_size = GetDef(max_pipeline_size, 10)
     , max_attempts      = GetDef(max_attempts     , 3)
-    , timeout           = GetDef(timeout          , 10000)
     }.

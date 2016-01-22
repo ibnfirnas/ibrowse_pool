@@ -16,7 +16,7 @@
 -export(
     [ start_link/1
     , start_supervised/1
-    , send_req/5
+    , send_req/7
     ]).
 
 %% gen_server callbacks
@@ -55,12 +55,8 @@
     , headers           :: [{string(), string()}]
     , method            :: atom()
     , body              :: string()
-    , timeout           :: non_neg_integer()
-    , max_sessions      :: pos_integer()
-    , max_pipeline_size :: pos_integer()
-    , max_attempts      :: pos_integer()
-    , ssl_opts          :: options()
-    , start_time        :: options()
+    , options           :: options()
+    , timeout           :: timeout()
     }).
 
 %% ============================================================================
@@ -77,8 +73,7 @@ start_supervised(#ibrowse_pool_spec{}=PoolSpec) ->
     | ignore
     | {error, {already_started, pid()} | term()}
     .
-start_link(#ibrowse_pool_spec{name=Name, timeout=Timeout}=PoolSpec) ->
-    {} = ibrowse_pool_config_stash:set_timeout(Name, Timeout),
+start_link(#ibrowse_pool_spec{name=Name}=PoolSpec) ->
     RegisteredName  = Name,
     GenServerModule = ?MODULE,
     GenServerOpts   = [],
@@ -95,13 +90,14 @@ start_link(#ibrowse_pool_spec{name=Name, timeout=Timeout}=PoolSpec) ->
     string(),
     [{string(), string()}],
     atom(),
-    string()
+    string(),
+    options(),
+    timeout()
 ) ->
       {ok, term()}
     | {error, term()}
     .
-send_req(Name, UrlRaw, Headers, Method, Body) ->
-    Timeout = ibrowse_pool_config_stash:get_timeout(Name),
+send_req(Name, UrlRaw, Headers, Method, Body, Options, Timeout) ->
     case catch ibrowse_lib:parse_url(UrlRaw)
     of  #url{}=UrlParsed ->
             ReqParams =
@@ -110,6 +106,7 @@ send_req(Name, UrlRaw, Headers, Method, Body) ->
                 , headers = Headers
                 , method  = Method
                 , body    = Body
+                , options = Options
                 , timeout = Timeout
                 },
             try
@@ -203,12 +200,12 @@ ibrowse_send_req(#state{spec=Spec}=State0, ReqParams) ->
     , headers = Headers
     , method  = Method
     , body    = Body
+    , options = Options
     , timeout = Timeout
     } = ReqParams,
     IsSSL = Protocol =:= https,
     {State1, LbPid} = state_get_lb_pid(State0, Host, Port),
     Timestamp = os:timestamp(),
-    Options = [],
     Result = ibrowse_pool_copypasta:try_routing_request(
         LbPid,
         Url,
