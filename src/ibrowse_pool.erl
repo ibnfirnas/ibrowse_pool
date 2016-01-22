@@ -57,11 +57,6 @@
     , body              :: string()
     , options           :: options()
     , timeout           :: timeout()
-    , max_sessions      :: pos_integer()
-    , max_pipeline_size :: pos_integer()
-    , max_attempts      :: pos_integer()
-    , ssl_opts          :: options()
-    , start_time        :: options()
     }).
 
 %% ============================================================================
